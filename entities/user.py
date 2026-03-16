@@ -1,4 +1,5 @@
 from persistence.db import get_connection
+from security.crypto import encrypt, decrypt
 
 class User:
 
@@ -13,15 +14,80 @@ class User:
         connection = get_connection()
         cursor = connection.cursor()
 
+        curp_encrypt = encrypt(curp)
+
         sql = "INSERT INTO user (name, curp, account, password) VALUES (%s, %s, %s, %s)"
-        cursor.execute(sql, (name, curp, account, password))
+        cursor.execute(sql, (name, curp_encrypt, account, password))
         connection.commit()
 
         cursor.close()
         connection.close()
 
+    def check_account_exists(account):
+        # Hacer una cnsuilta a SQL que retorne los elementos que coincidan con esa cuenta
+        # Retornar true si la colección contiene 1 o más elementos. Si contiene cero, retorna false
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+        sql = "SELECT account from user WHERE account = %s"
+        cursor.execute(sql, (account,))
+
+        row = cursor.fetchone()
+
+        #
+        if row is not None:
+            return True
+        else:
+            return False
+        
+        #
+        #return row is None
+        
+        #
+        #return cursor.fetchone() is None
+
         
 
+    def get_users():
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+        sql = "SELECT id, name, curp, account, password FROM user"
+
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+
+        return [
+            
+            User(
+                id = row["id"],
+                name = row["name"],
+                curp = decrypt(row["curp"]),
+                account = row["account"],
+                password = row["password"]
+            )
+            for row in rows 
+        ]
+    
+    def get_user_by_account(account):
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+        sql = "SELECT id, name, curp, account, password FROM user WHERE account = %s"
+
+        cursor.execute(sql, (account,))
+        row = cursor.fetchone()
+
+        if row is None:
+            return None
+        else:
+            return User(
+                id=row["id"],
+                name =row["name"],
+                account = row["account"],
+                curp = decrypt(row["curp"]),  
+                password = row["password"]
+            )
+
+
+ 
 
     
 
